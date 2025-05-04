@@ -1,0 +1,78 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ activity.Name if activity else '活动详情' }}{% endblock %}
+
+{% block content %}
+{% if activity %}
+    <article class="activity-detail">
+        <h2>{{ activity.Name }}</h2>
+
+        <p><strong>描述:</strong> {{ activity.Description | safe if activity.Description else '暂无描述' }}</p>
+        <p><strong>开始时间:</strong> {{ activity.StartTime.strftime('%Y-%m-%d %H:%M') if activity.StartTime else '待定' }}</p>
+        <p><strong>结束时间:</strong> {{ activity.EndTime.strftime('%Y-%m-%d %H:%M') if activity.EndTime else '待定' }}</p>
+        <p><strong>地点:</strong> {{ activity.LocationName or '待定' }} ({{ activity.LocationAddress or '地址未知' }})</p>
+        <p><strong>状态:</strong> {{ activity.Status }}</p>
+        <p>
+            <strong>容量:</strong>
+            {# 修改这里以显示报名人数 #}
+            {% if activity.Capacity is defined and activity.Capacity > 0 %}
+                {{ activity.Capacity }} 人 (当前已报名: {{ registration_count }})
+            {% elif activity.Capacity is defined and activity.Capacity == 0 %}
+                不限 (当前已报名: {{ registration_count }})
+            {% else %}
+                待定
+            {% endif %}
+        </p>
+        {% if activity.Requirements %}
+            <p><strong>要求:</strong> {{ activity.Requirements | safe }}</p>
+        {% endif %}
+        {# --- 显示负责人信息 (保持不变) --- #}
+        {% if activity.ManagerName %}
+            <p><strong>负责人:</strong> {{ activity.ManagerName }}</p>
+        {% else %}
+            <p><strong>负责人:</strong> 未指定</p>
+        {% endif %}
+
+        {# --- 类别和主办方 (保持不变) --- #}
+        {% if activity.Categories %}
+            <p><strong>类别:</strong> {{ activity.Categories | join(', ') }}</p>
+        {% endif %}
+        {% if activity.Organizers %}
+            <p><strong>主办方:</strong> {{ activity.Organizers | join(', ') }}</p>
+        {% endif %}
+
+        {# --- 报名按钮逻辑 (保持不变) --- #}
+        {% if 'user_id' in session %}
+            {% if is_registered %}
+                <p><button disabled class="button-disabled">您已报名</button></p>
+            {% elif activity.Status == '未开始' %}
+                {% if can_register %}
+                    <form action="{{ url_for('register_activity', activity_id=activity.ActivityID) }}" method="post">
+                        <button type="submit" class="button">立即报名</button>
+                    </form>
+                {% else %}
+                    <p><button disabled class="button-disabled">报名人数已满</button></p>
+                {% endif %}
+            {% else %}
+                <p><button disabled class="button-disabled">报名未开始或已结束</button></p>
+            {% endif %}
+        {% else %}
+            <p><a href="{{ url_for('login', next=request.url) }}" class="button">登录后报名</a></p>
+        {% endif %}
+
+        {# --- 删除按钮 (保持不变) --- #}
+        {% if 'user_id' in session and activity.ManagerUserID == session.user_id %}
+            <div style="margin-top: 20px; border-top: 1px solid #ccc; padding-top: 15px;">
+                <h4>负责人操作</h4>
+                <form action="{{ url_for('delete_activity', activity_id=activity.ActivityID) }}" method="post" onsubmit="return confirm('警告：确定要永久删除这个活动吗？\n所有相关的报名记录和反馈信息也将一并删除，此操作无法撤销！');">
+                    <button type="submit" class="button button-danger">删除此活动</button>
+                </form>
+            </div>
+        {% endif %}
+
+    </article>
+{% else %}
+    <p>无法加载活动详情。该活动可能已被删除或不存在。</p>
+    <p><a href="{{ url_for('list_activities') }}">返回活动列表</a></p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,94 @@
+semester_code\database_project\templates\register.html -->
+{% extends "layout.html" %}
+{% block title %}用户注册{% endblock %}
+{% block content %}
+<h2>用户注册</h2>
+
+{# 显示 Flash 消息 #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul class=flashes>
+    {% for category, message in messages %}
+      <li class="{{ category }}">{{ message }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+
+<form method="post">
+    <div>
+        <label for="username">用户名:</label>
+        <input type="text" id="username" name="username" required value="{{ request.form.username }}"> {# 保留输入值 #}
+    </div>
+    <div>
+        <label for="password">密码:</label>
+        <input type="password" id="password" name="password" required>
+    </div>
+     <div>
+        <label for="name">姓名 (可选):</label>
+        <input type="text" id="name" name="name" value="{{ request.form.name }}">
+    </div>
+    <div>
+        <label for="user_type">用户类型:</label>
+        <select id="user_type" name="user_type" required>
+            {# 保留选择 #}
+            <option value="student" {% if request.form.user_type == 'student' %}selected{% endif %}>学生</option>
+            <option value="teacher" {% if request.form.user_type == 'teacher' %}selected{% endif %}>教师</option>
+            <option value="external" {% if request.form.user_type == 'external' %}selected{% endif %}>校外人员</option>
+        </select>
+    </div>
+
+    {# --- 特定用户类型字段 (需要 JS 控制显隐) --- #}
+    <div id="student-fields" style="display: '{{ 'block' if request.form.user_type == 'student' else 'none' }}';">
+        <label for="student_id_number">学号:</label>
+        <input type="text" id="student_id_number" name="student_id_number" value="{{ request.form.student_id_number }}">
+    </div>
+    <div id="teacher-fields" style="display: '{{ 'block' if request.form.user_type == 'teacher' else 'none' }}';">
+        <label for="employee_id_number">工号:</label>
+        <input type="text" id="employee_id_number" name="employee_id_number" value="{{ request.form.employee_id_number }}">
+    </div>
+    <div id="external-fields" style="display: '{{ 'block' if request.form.user_type == 'external' else 'none' }}';">
+        <label for="id_card_number">身份证号:</label>
+        <input type="text" id="id_card_number" name="id_card_number" value="{{ request.form.id_card_number }}">
+    </div>
+    {# --- --- #}
+
+    {# --- 兴趣选择 --- #}
+    <div>
+        <label>兴趣爱好 (可选):</label>
+        <div class="interest-options">
+            {% if interests %}
+                {% for interest in interests %}
+                <label>
+                    {# 检查 request.form.interests 是否包含当前 interest.InterestID #}
+                    <input type="checkbox" name="interests" value="{{ interest.InterestID }}"
+                           {% if interest.InterestID|string in request.form.getlist('interests') %}checked{% endif %}>
+                    {{ interest.Name }}
+                </label>
+                {% endfor %}
+            {% else %}
+                <p>无法加载兴趣列表。</p>
+            {% endif %}
+        </div>
+    </div>
+    {# --- --- #}
+
+    <button type="submit">注册</button>
+</form>
+<p>已有账号？ <a href="{{ url_for('login') }}">立即登录</a></p>
+{% endblock %}
+
+{% block scripts %}
+{# 添加 JS 来根据 user_type 切换显示特定字段 #}
+<script>
+    document.getElementById('user_type').addEventListener('change', function() {
+        const userType = this.value;
+        document.getElementById('student-fields').style.display = userType === 'student' ? 'block' : 'none';
+        document.getElementById('teacher-fields').style.display = userType === 'teacher' ? 'block' : 'none';
+        document.getElementById('external-fields').style.display = userType === 'external' ? 'block' : 'none';
+    });
+    // Trigger change on page load to set initial state
+    document.getElementById('user_type').dispatchEvent(new Event('change'));
+</script>
+{% endblock %}

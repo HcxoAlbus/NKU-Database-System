@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-cn">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>{% block title %}校园活动推荐系统{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header> {# 使用 header 标签更语义化 #}
+        <nav>
+            <a href="{{ url_for('index') }}">首页</a>
+            <a href="{{ url_for('list_activities') }}">浏览活动</a>
+            <a href="{{ url_for('nearby_activities') }}">附近活动</a>
+            {# 添加用户相关链接 #}
+            <div class="user-nav">
+                {% if 'user_id' in session %}
+                    <a href="{{ url_for('create_activity') }}">创建活动</a> {# <--- 添加创建活动链接 #}
+                    <span>欢迎, {{ session.username }}!</span>
+                    <a href="{{ url_for('profile') }}">个人中心</a>
+                    <a href="{{ url_for('logout') }}">退出登录</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}">登录</a>
+                    <a href="{{ url_for('register') }}">注册</a>
+                {% endif %}
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        {# 将 Flash 消息移到 main 区域顶部 #}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages and request.endpoint not in ['profile', 'register', 'create_activity'] %} {# 避免在特定页面重复显示 #}
+            <ul class=flashes>
+            {% for category, message in messages %}
+              <li class="{{ category }}">{{ message }}</li>
+            {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %} {# 主要内容区域 #}
+    </main>
+
+    <footer>
+        <p>&copy; {{ now.year }} 校园活动推荐系统</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    {% block scripts %}{% endblock %} {# 页面特定的 JS #}
+</body>
+</html>

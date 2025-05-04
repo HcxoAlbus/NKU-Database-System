@@ -1,0 +1,29 @@
+{% extends "layout.html" %}
+
+{% block title %}首页 - 校园活动推荐系统{% endblock %}
+
+{% block content %}
+<h1>欢迎来到校园活动推荐系统</h1>
+<p>发现你身边的精彩活动！</p>
+
+<h2>近期活动</h2>
+{% if activities %}
+    <ul>
+        {% for activity in activities %}
+            <li>
+                <a href="{{ url_for('activity_detail', activity_id=activity.ActivityID) }}">
+                    {{ activity.Name }}
+                </a>
+                - {{ activity.StartTime.strftime('%Y-%m-%d %H:%M') }} 在 {{ activity.LocationName }}
+            </li>
+        {% else %}
+            <li>暂无近期活动</li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>无法加载活动信息。</p>
+{% endif %}
+
+{# 这里可以添加更多内容，如基于地理位置的推荐入口 #}
+
+{% endblock %}

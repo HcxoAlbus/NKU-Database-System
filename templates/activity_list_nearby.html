@@ -1,0 +1,47 @@
+<!-- filepath: d:\sec_semester_code\database_project\templates\activity_list_nearby.html -->
+{% extends "layout.html" %}
+
+{% block title %}附近的活动{% endblock %}
+
+{% block content %}
+<h2>附近的活动 ({{ radius }} 公里内)</h2>
+<p>您的当前位置: 纬度 {{ "%.4f"|format(user_lat) }}, 经度 {{ "%.4f"|format(user_lon) }}</p>
+<p><a href="{{ url_for('profile') }}">更新我的位置</a></p>
+
+{# 在这里可以添加调整半径的表单 #}
+
+{% if activities %}
+    <ul class="activity-list">
+        {% for activity in activities %}
+            <li class="activity-item">
+                <h3>
+                    <a href="{{ url_for('activity_detail', activity_id=activity.ActivityID) }}">
+                        {{ activity.Name }}
+                    </a>
+                    {% if activity.distance is defined %}
+                        <span style="font-size: 0.8em; color: grey;">(距离: {{ "%.2f"|format(activity.distance) }} km)</span>
+                    {% endif %}
+                </h3>
+                <p>
+                    <strong>时间:</strong> {{ activity.StartTime.strftime('%Y-%m-%d %H:%M') if activity.StartTime else '待定' }}
+                </p>
+                <p>
+                    <strong>地点:</strong> {{ activity.LocationName or '待定' }}
+                </p>
+                <p>
+                    <strong>状态:</strong> {{ activity.Status }}
+                    {% if activity.Capacity > 0 %}
+                        (容量: {{ activity.Capacity }})
+                    {% elif activity.Capacity == 0 %}
+                        (容量不限)
+                    {% endif %}
+                </p>
+                <a href="{{ url_for('activity_detail', activity_id=activity.ActivityID) }}" class="button">查看详情</a>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>您附近 {{ radius }} 公里内没有找到即将开始的活动。</p>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,220 @@
+{% extends "layout.html" %}
+
+{% block title %}个人中心 - {{ user.Username }}{% endblock %}
+
+{% block content %}
+<h2>个人中心</h2>
+
+{# 显示 Flash 消息 #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul class=flashes>
+    {% for category, message in messages %}
+      <li class="{{ category }}">{{ message }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+<div class="profile-section">
+    <h3>基本信息</h3>
+    <form action="{{ url_for('update_profile') }}" method="post">
+        <p><strong>用户名:</strong> {{ user.Username }}</p>
+        <p><strong>用户类型:</strong> {{ user.UserType }}</p>
+
+        {# 根据用户类型显示特定信息 #}
+        {% if user.UserType == 'student' %}
+            <p><strong>学号:</strong> {{ user.StudentIDNumber or '未填写' }}</p>
+            <p><strong>学院:</strong> {{ user.StudentInstitute or '未填写' }}</p>
+            <p><strong>专业:</strong> {{ user.Major or '未填写' }}</p>
+            <p><strong>入学年份:</strong> {{ user.EnrollmentYear or '未填写' }}</p>
+        {% elif user.UserType == 'teacher' %}
+            <p><strong>工号:</strong> {{ user.EmployeeIDNumber or '未填写' }}</p>
+            <p><strong>单位:</strong> {{ user.TeacherInstitute or '未填写' }}</p>
+            <p><strong>职称:</strong> {{ user.Title or '未填写' }}</p>
+        {% elif user.UserType == 'external' %}
+            <p><strong>所属组织:</strong> {{ user.Organization or '未填写' }}</p>
+        {% endif %}
+
+        <div>
+            <label for="email">邮箱:</label>
+            <input type="email" id="email" name="email" value="{{ user.Email or '' }}">
+        </div>
+        <div>
+            <label for="phone">电话:</label>
+            <input type="tel" id="phone" name="phone" value="{{ user.PhoneNumber or '' }}">
+        </div>
+         <div>
+            <label for="profile_description">个人简介:</label>
+            <textarea id="profile_description" name="profile_description" rows="3">{{ user.ProfileDescription or '' }}</textarea>
+        </div>
+
+        {# --- 兴趣编辑 --- #}
+        <div class="form-group">
+            <label>我的兴趣:</label>
+            <div class="checkbox-group">
+                {% for interest in all_interests %}
+                <label>
+                    <input type="checkbox" name="interests" value="{{ interest.InterestID }}"
+                           {{ 'checked' if interest.InterestID in user_interest_ids else '' }}>
+                    {{ interest.Name }}
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+        {# --- --- #}
+
+        <button type="submit" class="button">更新信息</button>
+    </form>
+</div>
+
+<div class="profile-section">
+    <h3>当前位置</h3>
+    <p>
+        当前记录位置:
+        {% if user.CurrentLatitude and user.CurrentLongitude %}
+            纬度 {{ "%.4f"|format(user.CurrentLatitude) }}, 经度 {{ "%.4f"|format(user.CurrentLongitude) }}
+            (<a href="{{ url_for('nearby_activities') }}">查看附近活动</a>)
+        {% else %}
+            未记录 (<a href="{{ url_for('nearby_activities') }}">尝试查看附近活动</a>)
+        {% endif %}
+    </p>
+    <button id="update-location-auto" class="button">自动获取当前位置</button>
+    <form id="update-location-manual-form" action="{{ url_for('update_location') }}" method="post" style="margin-top: 10px; display: none;">
+         <input type="hidden" id="latitude" name="latitude">
+         <input type="hidden" id="longitude" name="longitude">
+         <button type="submit" class="button">手动提交获取的位置</button>
+    </form>
+    <p id="location-status" style="color: blue; margin-top: 5px;"></p> {# 用于显示地理位置获取状态 #}
+</div>
+
+<div class="profile-section">
+    <h3>我报名的活动</h3>
+    {% if registered_activities %}
+        <ul class="compact-list">
+            {% for reg in registered_activities %}
+                <li>
+                    <a href="{{ url_for('activity_detail', activity_id=reg.ActivityID) }}">{{ reg.Name }}</a>
+                    ({{ reg.StartTime.strftime('%Y-%m-%d %H:%M') }}) - 状态: {{ reg.Status }}
+                    {% if reg.Status == '已报名' %}
+                    <form action="{{ url_for('cancel_registration', activity_id=reg.ActivityID) }}" method="post" style="display: inline; margin-left: 10px;">
+                        <button type="submit" class="button button-danger button-small">取消报名</button>
+                    </form>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>您还没有报名任何活动。</p>
+    {% endif %}
+</div>
+
+{# --- 我管理的活动 --- #}
+<div class="profile-section">
+    <h3>我管理的活动</h3>
+    {% if managed_activities %}
+        <ul class="compact-list">
+            {% for act in managed_activities %}
+                <li>
+                    <a href="{{ url_for('activity_detail', activity_id=act.ActivityID) }}">{{ act.Name }}</a>
+                     ({{ act.StartTime.strftime('%Y-%m-%d %H:%M') }}) - 状态: {{ act.Status }}
+                     {# 可以添加编辑链接等 #}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>您还没有创建或管理任何活动。</p>
+        <p><a href="{{ url_for('create_activity') }}" class="button">立即创建</a></p>
+    {% endif %}
+</div>
+
+
+{# --- 推荐活动区域 --- #}
+<div class="profile-section">
+    <h3>为你推荐</h3>
+    <div id="recommendations">
+        {% if recommendations %}
+            <ul class="compact-list">
+                {% for rec in recommendations %}
+                    <li>
+                        <a href="{{ url_for('activity_detail', activity_id=rec.ActivityID) }}">{{ rec.Name }}</a>
+                        ({{ rec.StartTime.strftime('%Y-%m-%d %H:%M') }} 在 {{ rec.LocationName or '线上' }})
+                        {% if rec.distance is defined %}
+                            <span style="font-size: 0.8em; color: grey;">(距离: {{ "%.2f"|format(rec.distance) }} km)</span>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>暂无特别推荐的活动。可以浏览<a href="{{ url_for('list_activities') }}">所有活动</a>或<a href="{{ url_for('nearby_activities') }}">附近活动</a>。</p>
+        {% endif %}
+    </div>
+</div>
+
+
+{% endblock %}
+
+{% block scripts %}
+{# --- Geolocation Script --- #}
+<script>
+    const updateLocationBtn = document.getElementById('update-location-auto');
+    const locationStatus = document.getElementById('location-status');
+    const manualForm = document.getElementById('update-location-manual-form');
+    const latInput = document.getElementById('latitude');
+    const lonInput = document.getElementById('longitude');
+
+    if (updateLocationBtn && navigator.geolocation) {
+        updateLocationBtn.addEventListener('click', () => {
+            locationStatus.textContent = '正在获取位置...';
+            updateLocationBtn.disabled = true;
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    locationStatus.textContent = `获取成功: 纬度 ${lat.toFixed(4)}, 经度 ${lon.toFixed(4)}`;
+                    latInput.value = lat;
+                    lonInput.value = lon;
+                    // 自动提交
+                    fetch(manualForm.action, {
+                        method: 'POST',
+                        body: new FormData(manualForm)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            locationStatus.textContent += ' (已更新到服务器)';
+                            // 可选：延迟后刷新页面或部分内容
+                            // setTimeout(() => window.location.reload(), 1500);
+                        } else {
+                            locationStatus.textContent += ` (更新失败: ${data.message})`;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error updating location:', error);
+                        locationStatus.textContent += ' (更新时发生网络错误)';
+                    })
+                    .finally(() => {
+                         updateLocationBtn.disabled = false;
+                    });
+                },
+                (error) => {
+                    let message = '获取位置失败: ';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED: message += "用户拒绝了地理位置请求。"; break;
+                        case error.POSITION_UNAVAILABLE: message += "位置信息不可用。"; break;
+                        case error.TIMEOUT: message += "获取用户位置超时。"; break;
+                        case error.UNKNOWN_ERROR: message += "发生未知错误。"; break;
+                    }
+                    locationStatus.textContent = message;
+                    locationStatus.style.color = 'red';
+                    updateLocationBtn.disabled = false;
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 } // 配置选项
+            );
+        });
+    } else if (updateLocationBtn) {
+        locationStatus.textContent = '您的浏览器不支持地理位置功能。';
+        updateLocationBtn.disabled = true;
+    }
+</script>
+{% endblock %}

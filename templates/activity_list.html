@@ -1,0 +1,41 @@
+{% extends "layout.html" %}
+
+{% block title %}活动列表{% endblock %}
+
+{% block content %}
+<h2>所有活动</h2>
+
+{# 在这里可以添加搜索和筛选表单 #}
+
+{% if activities %}
+    <ul class="activity-list">
+        {% for activity in activities %}
+            <li class="activity-item">
+                <h3>
+                    <a href="{{ url_for('activity_detail', activity_id=activity.ActivityID) }}">
+                        {{ activity.Name }}
+                    </a>
+                </h3>
+                <p>
+                    <strong>时间:</strong> {{ activity.StartTime.strftime('%Y-%m-%d %H:%M') if activity.StartTime else '待定' }}
+                </p>
+                <p>
+                    <strong>地点:</strong> {{ activity.LocationName or '待定' }}
+                </p>
+                <p>
+                    <strong>状态:</strong> {{ activity.Status }}
+                    {% if activity.Capacity > 0 %}
+                        (容量: {{ activity.Capacity }})
+                    {% elif activity.Capacity == 0 %}
+                        (容量不限)
+                    {% endif %}
+                </p>
+                <a href="{{ url_for('activity_detail', activity_id=activity.ActivityID) }}" class="button">查看详情</a>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>当前没有活动信息。</p>
+{% endif %}
+
+{% endblock %}

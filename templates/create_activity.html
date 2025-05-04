@@ -1,0 +1,112 @@
+{% extends "layout.html" %}
+
+{% block title %}创建新活动{% endblock %}
+
+{% block content %}
+<h2>创建新活动</h2>
+
+{# 显示 Flash 消息 #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul class=flashes>
+    {% for category, message in messages %}
+      <li class="{{ category }}">{{ message }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+{# 如果提交失败，form_data 会包含之前输入的值 #}
+<form method="post" class="form-create-activity">
+    <div>
+        <label for="name">活动名称:</label>
+        <input type="text" id="name" name="name" required value="{{ form_data.name if form_data else '' }}">
+    </div>
+    <div>
+        <label for="description">活动描述:</label>
+        <textarea id="description" name="description" rows="4">{{ form_data.description if form_data else '' }}</textarea>
+    </div>
+    <div>
+        <label for="start_time">开始时间:</label>
+        <input type="datetime-local" id="start_time" name="start_time" required value="{{ form_data.start_time if form_data else '' }}">
+    </div>
+    <div>
+        <label for="end_time">结束时间:</label>
+        <input type="datetime-local" id="end_time" name="end_time" required value="{{ form_data.end_time if form_data else '' }}">
+    </div>
+    <div>
+        <label for="location_id">活动地点:</label>
+        <select id="location_id" name="location_id" required>
+            <option value="">-- 请选择地点 --</option>
+            {% for loc in locations %}
+            <option value="{{ loc.LocationID }}" {{ 'selected' if form_data and form_data.location_id == loc.LocationID|string else '' }}>
+                {{ loc.Name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <label for="capacity">容量 (0表示无限制):</label>
+        <input type="number" id="capacity" name="capacity" min="0" value="{{ form_data.capacity if form_data else '0' }}">
+    </div>
+    <div>
+        <label for="requirements">活动要求:</label>
+        <textarea id="requirements" name="requirements" rows="2">{{ form_data.requirements if form_data else '' }}</textarea>
+    </div>
+
+    {# --- 类别选择 (多选) --- #}
+    <div class="form-group">
+        <label>活动类别:</label>
+        <div class="checkbox-group">
+            {% for cat in categories %}
+            <label>
+                <input type="checkbox" name="categories" value="{{ cat.CategoryID }}"
+                       {{ 'checked' if form_data and cat.CategoryID|string in form_data.getlist('categories') else '' }}>
+                {{ cat.Name }}
+            </label>
+            {% endfor %}
+        </div>
+    </div>
+
+    {# --- 主办方选择 (多选) --- #}
+    <div class="form-group">
+        <label>主办单位:</label>
+        <div class="checkbox-group">
+            {% for org in organizers %}
+            <label>
+                <input type="checkbox" name="organizers" value="{{ org.InstituteID }}"
+                       {{ 'checked' if form_data and org.InstituteID|string in form_data.getlist('organizers') else '' }}>
+                {{ org.Name }}
+            </label>
+            {% endfor %}
+        </div>
+    </div>
+
+    <button type="submit" class="button">创建活动</button>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 可选：添加 JS 验证，例如结束时间必须晚于开始时间
+    const startTimeInput = document.getElementById('start_time');
+    const endTimeInput = document.getElementById('end_time');
+
+    if (startTimeInput && endTimeInput) {
+        startTimeInput.addEventListener('change', () => {
+            if (endTimeInput.value && startTimeInput.value >= endTimeInput.value) {
+                endTimeInput.setCustomValidity('结束时间必须晚于开始时间');
+            } else {
+                endTimeInput.setCustomValidity('');
+            }
+        });
+        endTimeInput.addEventListener('change', () => {
+            if (startTimeInput.value && startTimeInput.value >= endTimeInput.value) {
+                endTimeInput.setCustomValidity('结束时间必须晚于开始时间');
+            } else {
+                endTimeInput.setCustomValidity('');
+            }
+        });
+    }
+</script>
+{% endblock %}

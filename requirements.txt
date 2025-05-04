@@ -1,0 +1,6 @@
+# requirements.txt
+Flask
+mysql-connector-python  # 或者 Flask-SQLAlchemy 如果你想用 ORM
+python-dotenv         # (可选) 用于管理环境变量，如数据库密码
+bcrypt                # 用于密码哈希
+# 可以根据需要添加其他库，如用于地理计算的 geopy

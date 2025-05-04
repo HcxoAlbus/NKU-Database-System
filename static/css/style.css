@@ -1,0 +1,221 @@
+body {
+    font-family: sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+header {
+    background: #333;
+    color: #fff;
+    padding: 1rem 0;
+}
+
+nav {
+    max-width: 1100px;
+    margin: auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+}
+
+nav a {
+    color: #fff;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+}
+
+nav a:hover {
+    background: #555;
+    border-radius: 4px;
+}
+
+.user-nav {
+    display: flex;
+    align-items: center;
+}
+
+.user-nav span {
+    margin-right: 1rem;
+}
+
+main {
+    max-width: 1100px;
+    margin: 2rem auto;
+    padding: 0 20px;
+    background: #fff;
+    padding: 20px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+footer {
+    text-align: center;
+    margin-top: 2rem;
+    padding: 1rem;
+    background: #333;
+    color: #fff;
+}
+
+h1, h2, h3 {
+    color: #333;
+}
+
+/* 表单样式 */
+form div {
+    margin-bottom: 1rem;
+}
+
+form label {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-weight: bold;
+}
+
+form input[type="text"],
+form input[type="password"],
+form input[type="email"],
+form input[type="tel"],
+form input[type="number"],
+form input[type="datetime-local"],
+form select,
+form textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box; /* 防止 padding 撑大元素 */
+}
+
+form textarea {
+    resize: vertical; /* 允许垂直调整大小 */
+}
+
+/* Flash 消息 */
+.flashes {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 1rem;
+}
+.flashes li {
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+}
+.flashes .success { background-color: #d4edda; border-color: #c3e6cb; color: #155724; }
+.flashes .error { background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+.flashes .warning { background-color: #fff3cd; border-color: #ffeeba; color: #856404; }
+.flashes .info { background-color: #d1ecf1; border-color: #bee5eb; color: #0c5460; }
+
+/* 按钮 */
+.button {
+    display: inline-block;
+    padding: 10px 18px; /* 稍微增大按钮 */
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-size: 1rem; /* 明确字体大小 */
+}
+
+.button:hover {
+    background-color: #0056b3;
+}
+
+.button-disabled {
+    background-color: #cccccc;
+    color: #666666;
+    cursor: not-allowed;
+}
+
+.button-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.button-danger:hover {
+    background-color: #c82333;
+}
+
+.button-small { /* 用于列表中的按钮 */
+    padding: 5px 10px;
+    font-size: 0.85rem;
+}
+
+
+/* 活动列表 */
+.activity-list {
+    list-style: none;
+    padding: 0;
+}
+.activity-item {
+    background: #f9f9f9;
+    border: 1px solid #eee;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+}
+.activity-item h3 {
+    margin-top: 0;
+}
+.activity-item p {
+    margin: 0.5rem 0;
+}
+
+/* 活动详情 */
+.activity-detail p {
+    margin: 0.8rem 0;
+}
+
+/* 个人中心 */
+.profile-section {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #eee;
+}
+.profile-section:last-child {
+    border-bottom: none;
+}
+.profile-section h3 {
+    margin-top: 0;
+    color: #0056b3;
+}
+
+/* 复选框组 */
+.form-group {
+    margin-bottom: 1rem;
+}
+.checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px; /* 复选框之间的间距 */
+    border: 1px solid #eee;
+    padding: 10px;
+    border-radius: 4px;
+}
+.checkbox-group label {
+    display: inline-flex; /* 让 label 和 input 在一行 */
+    align-items: center;
+    margin-bottom: 0; /* 覆盖默认的 label margin */
+    font-weight: normal; /* 非粗体 */
+    cursor: pointer;
+}
+.checkbox-group input[type="checkbox"] {
+    width: auto; /* 恢复 checkbox 的默认宽度 */
+    margin-right: 5px;
+}
+
+/* 紧凑列表样式 */
+.compact-list {
+    list-style: disc;
+    padding-left: 20px;
+}
+.compact-list li {
+    margin-bottom: 0.5rem;
+}

@@ -406,7 +406,128 @@ def cancel_registration(activity_id):
     # 不论成功与否，都重定向回个人中心页面，因为按钮在那里
     return redirect(url_for('profile'))
 
+# --- 编辑活动的路由和处理函数 ---
+@app.route('/activity/<int:activity_id>/edit', methods=['GET', 'POST'])
+def edit_activity(activity_id):
+    """显示编辑活动表单并处理提交"""
+    if 'user_id' not in session:
+        flash('请先登录以编辑活动。', 'warning')
+        return redirect(url_for('login', next=request.url))
 
+    user_id = session['user_id']
+
+    # --- POST 请求：处理表单提交 ---
+    if request.method == 'POST':
+        # 1. 获取表单数据
+        name = request.form.get('name')
+        description = request.form.get('description')
+        start_time_str = request.form.get('start_time')
+        end_time_str = request.form.get('end_time')
+        location_id_str = request.form.get('location_id')
+        capacity_str = request.form.get('capacity')
+        requirements = request.form.get('requirements')
+        # 类别和主办方更新逻辑 (如果需要)
+        # category_ids = request.form.getlist('categories')
+        # organizer_ids = request.form.getlist('organizers')
+
+        # 2. 基本验证 (应用层)
+        if not all([name, start_time_str, end_time_str, location_id_str, capacity_str]):
+            flash('请填写所有必填字段。', 'error')
+            # 需要重新加载编辑页面所需的数据并返回
+            # (为了简洁，这里省略了重新加载数据的代码，实际应重新查询并渲染)
+            return redirect(url_for('edit_activity', activity_id=activity_id))
+
+        try:
+            start_time = dt.strptime(start_time_str, '%Y-%m-%dT%H:%M')
+            end_time = dt.strptime(end_time_str, '%Y-%m-%dT%H:%M')
+            location_id = int(location_id_str) if location_id_str else None
+            capacity = int(capacity_str)
+        except ValueError:
+            flash('日期时间格式或数字格式无效。', 'error')
+            return redirect(url_for('edit_activity', activity_id=activity_id))
+
+        # 3. 调用存储过程执行更新 (包含权限验证和冲突检查)
+        proc_params = (
+            activity_id, user_id, name, description, start_time,
+            end_time, location_id, capacity, requirements
+        )
+        update_success = execute_query("CALL UpdateActivityDetails(%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                                       proc_params, commit=True)
+
+        # 4. 处理结果
+        if update_success is not None: # execute_query 成功时不返回特定值，失败时返回 None
+            flash('活动信息更新成功！', 'success')
+            # TODO: 更新 Activity_Categories 和 Organizers (如果需要)
+            # 这通常涉及先删除旧关联，再插入新关联，建议在事务中完成或另写存储过程
+            return redirect(url_for('activity_detail', activity_id=activity_id))
+        else:
+            # 错误消息已由 execute_query 中的 flash 处理
+            # 重新渲染编辑页面，并可能需要传递旧的表单数据以供用户修正
+            # (为了简洁，这里仅重定向，实际应用中可能需要更好的错误处理流程)
+             # 重新加载数据并渲染编辑页，保留用户输入
+            activity_data = request.form.to_dict()
+            # 将 datetime-local 字符串格式转换回存储过程或模型期望的格式可能需要处理
+            # 或者直接传递字符串让模板处理
+            activity_data['start_time'] = start_time_str
+            activity_data['end_time'] = end_time_str
+            # 重新获取下拉列表等数据
+            locations = execute_query("SELECT LocationID, Name FROM Locations ORDER BY Name", fetchall=True)
+            # categories = execute_query("SELECT CategoryID, Name FROM Categories ORDER BY Name", fetchall=True)
+            # organizers = execute_query("SELECT InstituteID, Name FROM Institutes ORDER BY Name", fetchall=True)
+            flash('更新失败，请检查输入或错误信息。', 'error') # 补充一个通用错误提示
+            return render_template('edit_activity.html',
+                                   activity=activity_data, # 传递包含用户输入的字典
+                                   activity_id=activity_id,
+                                   locations=locations or [],
+                                   # categories=categories or [], # 如果需要编辑类别
+                                   # organizers=organizers or [], # 如果需要编辑主办方
+                                   form_data=activity_data) # 用于填充表单
+
+    # --- GET 请求：显示编辑表单 ---
+    else:
+        # 1. 查询活动当前信息
+        query = """
+            SELECT a.*, l.Name AS LocationName
+            FROM Activities a
+            LEFT JOIN Locations l ON a.LocationID = l.LocationID
+            WHERE a.ActivityID = %s
+        """
+        activity = execute_query(query, (activity_id,), fetchone=True)
+
+        if not activity:
+            flash('未找到该活动。', 'error')
+            return redirect(url_for('list_activities'))
+
+        # 2. 验证用户权限
+        if activity['ManagerUserID'] != user_id:
+            flash('您无权编辑此活动。', 'error')
+            return redirect(url_for('activity_detail', activity_id=activity_id))
+
+        # 3. 查询编辑表单所需的其他数据 (地点列表等)
+        locations = execute_query("SELECT LocationID, Name FROM Locations ORDER BY Name", fetchall=True)
+        # categories = execute_query("SELECT CategoryID, Name FROM Categories ORDER BY Name", fetchall=True) # 如果需要编辑类别
+        # organizers = execute_query("SELECT InstituteID, Name FROM Institutes ORDER BY Name", fetchall=True) # 如果需要编辑主办方
+        # current_category_ids = ... # 查询当前活动关联的类别ID
+        # current_organizer_ids = ... # 查询当前活动关联的主办方ID
+
+        # 格式化 datetime 以适配 datetime-local input
+        if activity.get('StartTime'):
+            activity['start_time_str'] = activity['StartTime'].strftime('%Y-%m-%dT%H:%M')
+        if activity.get('EndTime'):
+            activity['end_time_str'] = activity['EndTime'].strftime('%Y-%m-%dT%H:%M')
+
+
+        return render_template('edit_activity.html',
+                               activity=activity,
+                               activity_id=activity_id,
+                               locations=locations or [],
+                               # categories=categories or [], # 传递类别列表
+                               # organizers=organizers or [], # 传递主办方列表
+                               # current_category_ids=current_category_ids, # 传递当前选中的类别
+                               # current_organizer_ids=current_organizer_ids, # 传递当前选中的主办方
+                               form_data=activity # 初始表单数据
+                              )
+    
 @app.route('/activity/create', methods=['GET', 'POST'])
 def create_activity():
     """显示创建活动表单并处理提交"""

@@ -1,0 +1,113 @@
+{% extends "layout.html" %}
+
+{% block title %}编辑活动 - {{ form_data.Name }}{% endblock %}
+
+{% block content %}
+<h2>编辑活动: {{ form_data.Name }}</h2>
+
+{# 显示 Flash 消息 #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul class=flashes>
+    {% for category, message in messages %}
+      <li class="{{ category }}">{{ message }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+{# 使用 form_data 来填充表单，以便在验证失败时保留用户输入 #}
+<form method="post" action="{{ url_for('edit_activity', activity_id=activity_id) }}" class="form-edit-activity">
+    <div>
+        <label for="name">活动名称:</label>
+        <input type="text" id="name" name="name" required value="{{ form_data.Name or '' }}">
+    </div>
+    <div>
+        <label for="description">活动描述:</label>
+        <textarea id="description" name="description" rows="4">{{ form_data.Description or '' }}</textarea>
+    </div>
+    <div>
+        <label for="start_time">开始时间:</label>
+        {# 使用格式化后的字符串填充 datetime-local input #}
+        <input type="datetime-local" id="start_time" name="start_time" required value="{{ form_data.start_time_str or '' }}">
+    </div>
+    <div>
+        <label for="end_time">结束时间:</label>
+        <input type="datetime-local" id="end_time" name="end_time" required value="{{ form_data.end_time_str or '' }}">
+    </div>
+    <div>
+        <label for="location_id">活动地点:</label>
+        <select id="location_id" name="location_id" required>
+            <option value="">-- 请选择地点 --</option>
+            {% for loc in locations %}
+            <option value="{{ loc.LocationID }}" {{ 'selected' if form_data.LocationID == loc.LocationID else '' }}>
+                {{ loc.Name }}
+            </option>
+            {% endfor %}
+             {# 处理线上活动等特殊情况，如果 LocationID 可以为 NULL #}
+             <option value="" {{ 'selected' if form_data.LocationID is none else '' }}>线上或其他 (无具体地点)</option>
+        </select>
+    </div>
+    <div>
+        <label for="capacity">容量 (0表示无限制):</label>
+        <input type="number" id="capacity" name="capacity" min="0" value="{{ form_data.Capacity if form_data.Capacity is not none else '0' }}">
+    </div>
+    <div>
+        <label for="requirements">活动要求:</label>
+        <textarea id="requirements" name="requirements" rows="2">{{ form_data.Requirements or '' }}</textarea>
+    </div>
+
+    {# --- 类别和主办方编辑 (可选，如果需要实现) ---
+    <div class="form-group">
+        <label>活动类别:</label>
+        <div class="checkbox-group">
+            {% for cat in categories %}
+            <label>
+                <input type="checkbox" name="categories" value="{{ cat.CategoryID }}"
+                       {{ 'checked' if cat.CategoryID in current_category_ids else '' }}>
+                {{ cat.Name }}
+            </label>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="form-group">
+        <label>主办单位:</label>
+        <div class="checkbox-group">
+            {% for org in organizers %}
+            <label>
+                <input type="checkbox" name="organizers" value="{{ org.InstituteID }}"
+                       {{ 'checked' if org.InstituteID in current_organizer_ids else '' }}>
+                {{ org.Name }}
+            </label>
+            {% endfor %}
+        </div>
+    </div>
+    --- --- #}
+
+    <button type="submit" class="button">保存更改</button>
+    <a href="{{ url_for('activity_detail', activity_id=activity_id) }}" class="button" style="background-color: grey; margin-left: 10px;">取消</a>
+</form>
+{% endblock %}
+
+{% block scripts %}
+{# 可以复用 create_activity 中的 JS 验证逻辑 #}
+<script>
+    const startTimeInput = document.getElementById('start_time');
+    const endTimeInput = document.getElementById('end_time');
+
+    function validateTime() {
+        if (startTimeInput.value && endTimeInput.value && startTimeInput.value >= endTimeInput.value) {
+            endTimeInput.setCustomValidity('结束时间必须晚于开始时间');
+        } else {
+            endTimeInput.setCustomValidity('');
+        }
+    }
+
+    if (startTimeInput && endTimeInput) {
+        startTimeInput.addEventListener('change', validateTime);
+        endTimeInput.addEventListener('change', validateTime);
+        // Initial check in case the form is pre-filled with invalid data
+        validateTime();
+    }
+</script>
+{% endblock %}

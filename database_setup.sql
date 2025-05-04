@@ -334,4 +334,75 @@ BEGIN
     END IF;
 END //
 
+-- 存储过程：更新活动详情并检查冲突
+CREATE PROCEDURE UpdateActivityDetails(
+    IN p_activity_id INT,
+    IN p_manager_user_id INT, -- 用于验证操作者权限
+    IN p_name VARCHAR(150),
+    IN p_description TEXT,
+    IN p_start_time DATETIME,
+    IN p_end_time DATETIME,
+    IN p_location_id INT,
+    IN p_capacity INT,
+    IN p_requirements TEXT
+)
+BEGIN
+    DECLARE current_manager_id INT;
+    DECLARE conflict_count INT;
+    DECLARE existing_status ENUM('未开始', '进行中', '已结束', '已取消');
+
+    -- 1. 验证操作者权限和活动状态
+    SELECT ManagerUserID, Status INTO current_manager_id, existing_status
+    FROM Activities
+    WHERE ActivityID = p_activity_id;
+
+    IF current_manager_id IS NULL THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = '错误：活动不存在。';
+    ELSEIF current_manager_id != p_manager_user_id THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = '错误：您无权修改此活动。';
+    -- 可以选择性地取消对已结束或已取消活动的修改限制，如果业务需要
+    -- ELSEIF existing_status IN ('已结束', '已取消') THEN
+    --    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = '错误：无法修改已结束或已取消的活动。';
+    END IF;
+
+    -- 2. 基本数据有效性检查
+    IF p_start_time >= p_end_time THEN
+        SIGNAL SQLSTATE '45002' SET MESSAGE_TEXT = '错误：活动开始时间必须早于结束时间。';
+    END IF;
+
+    IF p_capacity < 0 THEN
+         SIGNAL SQLSTATE '45003' SET MESSAGE_TEXT = '错误：活动容量不能为负数。';
+    END IF;
+
+    -- 3. 时间/地点冲突检查 (排除自身)
+    -- 仅当选择了具体地点时检查冲突 (线上活动地点 ID 可能为 NULL 或特定值)
+    IF p_location_id IS NOT NULL THEN
+        SELECT COUNT(*) INTO conflict_count
+        FROM Activities
+        WHERE LocationID = p_location_id          -- 相同地点
+          AND ActivityID != p_activity_id       -- 排除当前正在修改的活动
+          AND Status != '已取消'                -- 只与未取消的活动比较
+          AND p_start_time < EndTime            -- 新的开始时间早于已存在的结束时间
+          AND p_end_time > StartTime;           -- 新的结束时间晚于已存在的开始时间
+
+        IF conflict_count > 0 THEN
+            SIGNAL SQLSTATE '45001' SET MESSAGE_TEXT = '错误：该时间段内此地点已有其他活动安排。';
+        END IF;
+    END IF;
+
+    -- 4. 执行更新操作
+    UPDATE Activities
+    SET
+        Name = p_name,
+        Description = p_description,
+        StartTime = p_start_time,
+        EndTime = p_end_time,
+        LocationID = p_location_id,
+        Capacity = p_capacity,
+        Requirements = p_requirements
+        -- LastUpdateTime 会自动更新
+    WHERE ActivityID = p_activity_id;
+
+END //
+
 DELIMITER ;

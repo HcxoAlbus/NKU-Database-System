@@ -60,20 +60,21 @@
             <p><a href="{{ url_for('login', next=request.url) }}" class="button">登录后报名</a></p>
         {% endif %}
 
-        {# --- 删除按钮 (保持不变) --- #}
+        {# --- 负责人操作区域 --- #}
         {% if 'user_id' in session and activity.ManagerUserID == session.user_id %}
             <div style="margin-top: 20px; border-top: 1px solid #ccc; padding-top: 15px;">
                 <h4>负责人操作</h4>
 
+                {# --- 查看报名者链接 --- #}
+                <a href="{{ url_for('view_activity_registrants', activity_id=activity.ActivityID) }}" class="button" style="margin-right: 10px; background-color: #17a2b8;">查看报名者</a> {# 新增链接 #}
+
                 {# --- 编辑按钮 --- #}
                 <a href="{{ url_for('edit_activity', activity_id=activity.ActivityID) }}" class="button" style="margin-right: 10px;">编辑活动</a>
                 {# --- 删除按钮 --- #}
-                <form action="{{ url_for('delete_activity', activity_id=activity.ActivityID) }}" method="post" onsubmit="return confirm('警告：确定要永久删除这个活动吗？\n所有相关的报名记录和反馈信息也将一并删除，此操作无法撤销！');">
+                <form action="{{ url_for('delete_activity', activity_id=activity.ActivityID) }}" method="post" onsubmit="return confirm('警告：确定要永久删除这个活动吗？\n所有相关的报名记录和反馈信息也将一并删除，此操作无法撤销！');" style="display: inline-block;"> {# 使表单内联显示 #}
                     <button type="submit" class="button button-danger">删除此活动</button>
                 </form>
             </div>
-
-        
         {% endif %}
 
     </article>

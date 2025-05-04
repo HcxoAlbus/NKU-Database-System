@@ -406,3 +406,38 @@ BEGIN
 END //
 
 DELIMITER ;
+
+-- 视图：显示活动报名者的详细信息
+CREATE VIEW V_Activity_Registrations_Details AS
+SELECT
+    r.RegistrationID,
+    r.ActivityID,
+    r.UserID,
+    r.RegistrationTime,
+    r.Status AS RegistrationStatus, -- 报名状态
+    u.Username,
+    u.Email,
+    u.PhoneNumber,
+    u.UserType,
+    u.ProfileDescription,
+    -- 学生信息
+    s.StudentIDNumber,
+    s.Major,
+    s.EnrollmentYear,
+    si.Name AS StudentInstituteName,
+    -- 教师信息
+    t.EmployeeIDNumber,
+    t.Title,
+    ti.Name AS TeacherInstituteName,
+    -- 校外人员信息
+    e.Organization
+FROM Registrations r
+JOIN Users u ON r.UserID = u.UserID
+LEFT JOIN Students s ON u.UserID = s.UserID AND u.UserType = 'student'
+LEFT JOIN Institutes si ON s.InstituteID = si.InstituteID
+LEFT JOIN Teachers t ON u.UserID = t.UserID AND u.UserType = 'teacher'
+LEFT JOIN Institutes ti ON t.InstituteID = ti.InstituteID
+LEFT JOIN ExternalUsers e ON u.UserID = e.UserID AND u.UserType = 'external';
+
+
+

@@ -731,6 +731,43 @@ def nearby_activities():
                            radius=radius_km)
 
 
+# --- 新增路由：查看活动报名者 ---
+@app.route('/activity/<int:activity_id>/registrants')
+def view_activity_registrants(activity_id):
+    """活动负责人查看报名者列表"""
+    if 'user_id' not in session:
+        flash('请先登录。', 'warning')
+        return redirect(url_for('login', next=request.url))
+
+    user_id = session['user_id']
+
+    # 1. 验证当前用户是否是该活动的负责人
+    activity_manager_query = "SELECT Name, ManagerUserID FROM Activities WHERE ActivityID = %s"
+    activity_info = execute_query(activity_manager_query, (activity_id,), fetchone=True)
+
+    if not activity_info:
+        flash('活动不存在。', 'error')
+        return redirect(url_for('list_activities'))
+
+    if activity_info['ManagerUserID'] != user_id:
+        flash('您无权查看此活动的报名者列表。', 'error')
+        return redirect(url_for('activity_detail', activity_id=activity_id))
+
+    # 2. 使用视图查询报名者信息 (可以根据需要筛选报名状态, e.g., WHERE RegistrationStatus = '已报名')
+    registrants_query = """
+        SELECT *
+        FROM V_Activity_Registrations_Details
+        WHERE ActivityID = %s
+        ORDER BY RegistrationTime ASC
+    """
+    registrants = execute_query(registrants_query, (activity_id,), fetchall=True)
+
+    # 渲染一个新模板来显示报名者列表
+    return render_template('activity_registrants.html',
+                           activity_name=activity_info['Name'],
+                           activity_id=activity_id,
+                           registrants=registrants or [])
+
 # --- 用户个人中心 ---
 @app.route('/profile')
 def profile():

@@ -1,0 +1,56 @@
+{% extends "layout.html" %}
+
+{% block title %}报名者列表 - {{ activity_name }}{% endblock %}
+
+{% block content %}
+<h2>活动 "{{ activity_name }}" 的报名者列表</h2>
+<p><a href="{{ url_for('activity_detail', activity_id=activity_id) }}">&laquo; 返回活动详情</a></p>
+
+{% if registrants %}
+    <table border="1" style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
+        <thead>
+            <tr>
+                <th>报名时间</th>
+                <th>用户名</th>
+                <th>用户类型</th>
+                <th>邮箱</th>
+                <th>电话</th>
+                <th>报名状态</th>
+                <th>详细信息</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for reg in registrants %}
+            <tr>
+                <td>{{ reg.RegistrationTime.strftime('%Y-%m-%d %H:%M') if reg.RegistrationTime else 'N/A' }}</td>
+                <td>{{ reg.Username }}</td>
+                <td>{{ reg.UserType }}</td>
+                <td>{{ reg.Email or '未提供' }}</td>
+                <td>{{ reg.PhoneNumber or '未提供' }}</td>
+                <td>{{ reg.RegistrationStatus }}</td>
+                <td>
+                    {# 根据用户类型显示不同信息 #}
+                    {% if reg.UserType == 'student' %}
+                        学号: {{ reg.StudentIDNumber or 'N/A' }}<br>
+                        学院: {{ reg.StudentInstituteName or 'N/A' }}<br>
+                        专业: {{ reg.Major or 'N/A' }}
+                    {% elif reg.UserType == 'teacher' %}
+                        工号: {{ reg.EmployeeIDNumber or 'N/A' }}<br>
+                        单位: {{ reg.TeacherInstituteName or 'N/A' }}<br>
+                        职称: {{ reg.Title or 'N/A' }}
+                    {% elif reg.UserType == 'external' %}
+                        组织: {{ reg.Organization or 'N/A' }}
+                    {% endif %}
+                    {% if reg.ProfileDescription %}
+                        <br>简介: {{ reg.ProfileDescription }}
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>目前还没有人报名参加此活动。</p>
+{% endif %}
+
+{% endblock %}
